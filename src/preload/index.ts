@@ -26,7 +26,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const el = {
     documentName: document.getElementById('documentName'),
     createDocumentBtn: document.getElementById('createDocumentBtn'),
-    fileTextArea: document.getElementById('fileTextArea')
+    openDocumentBtn: document.getElementById('openDocumentBtn'),
+    fileTextArea: document.getElementById('fileTextArea') as HTMLInputElement
   }
 
   el.createDocumentBtn?.addEventListener('click', () => {
@@ -34,14 +35,27 @@ window.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.send('create-document-triggered')
   })
 
-  ipcRenderer.on('document-created', (_, filePath) => {
+  el.openDocumentBtn?.addEventListener('click', () => {
+    console.log('clicked openDocumentBtn')
+    ipcRenderer.send('open-document-triggered')
+  })
+
+  const handleDocumentChange = (filePath: string, content: string = ''): void => {
     if (el.documentName) {
       el.documentName.innerHTML = path.parse(filePath).base
     }
     if (el.fileTextArea) {
       el.fileTextArea.removeAttribute('disabled')
-      el.fileTextArea.nodeValue = ''
+      el.fileTextArea.value = content
       el.fileTextArea.focus()
     }
+  }
+
+  ipcRenderer.on('document-created', (_, filePath) => {
+    handleDocumentChange(filePath)
+  })
+
+  ipcRenderer.on('document-opened', (_, { filePath, content }) => {
+    handleDocumentChange(filePath, content)
   })
 })

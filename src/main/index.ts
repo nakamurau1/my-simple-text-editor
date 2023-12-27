@@ -92,3 +92,24 @@ ipcMain.on('create-document-triggered', () => {
       }
     })
 })
+
+ipcMain.on('open-document-triggered', () => {
+  dialog
+    .showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'text files', extensions: ['txt'] }]
+    })
+    .then((dialogReturnValue) => {
+      const filePath = dialogReturnValue.filePaths[0]
+      console.log(`filePath: ${filePath}`)
+      if (filePath) {
+        fs.readFile(filePath, 'utf-8', (error, content) => {
+          if (error) {
+            console.log(error)
+          } else {
+            mainWindow.webContents.send('document-opened', { filePath, content })
+          }
+        })
+      }
+    })
+})
