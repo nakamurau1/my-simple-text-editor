@@ -1,13 +1,17 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import fs from 'fs'
+
+let mainWindow: BrowserWindow
 
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
+    titleBarStyle: 'hiddenInset', // for mac
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -69,3 +73,22 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+ipcMain.on('create-document-triggered', () => {
+  dialog
+    .showSaveDialog(mainWindow, {
+      filters: [{ name: 'text files', extensions: ['txt'] }]
+    })
+    .then(({ filePath }) => {
+      console.log(`filePath: ${filePath}`)
+      if (filePath) {
+        fs.writeFile(filePath, '', (error) => {
+          if (error) {
+            console.log(error)
+          } else {
+            mainWindow.webContents.send('document-created', filePath)
+          }
+        })
+      }
+    })
+})

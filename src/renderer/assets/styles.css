@@ -1,6 +1,7 @@
 body {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   font-family:
     Roboto,
     -apple-system,
@@ -12,8 +13,41 @@ body {
     'Cantarell',
     'Open Sans',
     sans-serif;
-  color: #86a5b1;
+  color: #fff;
   background-color: #2f3241;
+}
+
+.title-bar {
+  height: 50px;
+  width: 100%;
+  background-color: rgba(194, 245, 255, 0.1);
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.document-name {
+  margin-right: 10px;
+}
+
+.menu-section {
+  margin-right: 10px;
+}
+
+main {
+  flex: 1;
+  padding: 10px;
+}
+
+main textarea {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  color: #fff;
+  border: none;
+  outline: none;
+  resize: none;
 }
 
 * {

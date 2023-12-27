@@ -1,5 +1,6 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import path from 'path'
 
 // Custom APIs for renderer
 const api = {}
@@ -20,3 +21,27 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.api = api
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const el = {
+    documentName: document.getElementById('documentName'),
+    createDocumentBtn: document.getElementById('createDocumentBtn'),
+    fileTextArea: document.getElementById('fileTextArea')
+  }
+
+  el.createDocumentBtn?.addEventListener('click', () => {
+    console.log('clicked createDocumentBtn')
+    ipcRenderer.send('create-document-triggered')
+  })
+
+  ipcRenderer.on('document-created', (_, filePath) => {
+    if (el.documentName) {
+      el.documentName.innerHTML = path.parse(filePath).base
+    }
+    if (el.fileTextArea) {
+      el.fileTextArea.removeAttribute('disabled')
+      el.fileTextArea.nodeValue = ''
+      el.fileTextArea.focus()
+    }
+  })
+})
