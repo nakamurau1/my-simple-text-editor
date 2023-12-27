@@ -27,7 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
     documentName: document.getElementById('documentName'),
     createDocumentBtn: document.getElementById('createDocumentBtn'),
     openDocumentBtn: document.getElementById('openDocumentBtn'),
-    fileTextArea: document.getElementById('fileTextArea') as HTMLInputElement
+    fileTextArea: document.getElementById('fileTextArea') as HTMLTextAreaElement
   }
 
   el.createDocumentBtn?.addEventListener('click', () => {
@@ -38,6 +38,14 @@ window.addEventListener('DOMContentLoaded', () => {
   el.openDocumentBtn?.addEventListener('click', () => {
     console.log('clicked openDocumentBtn')
     ipcRenderer.send('open-document-triggered')
+  })
+
+  el.fileTextArea.addEventListener('input', (e) => {
+    if (!(e.target instanceof HTMLTextAreaElement)) {
+      return
+    }
+
+    ipcRenderer.send('file-content-updated', e.target.value)
   })
 
   const handleDocumentChange = (filePath: string, content: string = ''): void => {

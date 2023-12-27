@@ -1,10 +1,11 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import fs from 'fs'
 
 let mainWindow: BrowserWindow
+let openedFilePath: string
 
 function createWindow(): void {
   // Create the browser window.
@@ -74,18 +75,22 @@ app.on('window-all-closed', () => {
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
 
+const handleError = (): void => {
+  new Notification({ title: 'Error', body: 'Sorry, something went wrong :)' }).show()
+}
+
 ipcMain.on('create-document-triggered', () => {
   dialog
     .showSaveDialog(mainWindow, {
       filters: [{ name: 'text files', extensions: ['txt'] }]
     })
     .then(({ filePath }) => {
-      console.log(`filePath: ${filePath}`)
       if (filePath) {
         fs.writeFile(filePath, '', (error) => {
           if (error) {
-            console.log(error)
+            handleError()
           } else {
+            openedFilePath = filePath
             mainWindow.webContents.send('document-created', filePath)
           }
         })
@@ -101,15 +106,23 @@ ipcMain.on('open-document-triggered', () => {
     })
     .then((dialogReturnValue) => {
       const filePath = dialogReturnValue.filePaths[0]
-      console.log(`filePath: ${filePath}`)
       if (filePath) {
         fs.readFile(filePath, 'utf-8', (error, content) => {
           if (error) {
-            console.log(error)
+            handleError()
           } else {
+            openedFilePath = filePath
             mainWindow.webContents.send('document-opened', { filePath, content })
           }
         })
       }
     })
+})
+
+ipcMain.on('file-content-updated', (_, textAreaContent) => {
+  fs.writeFile(openedFilePath, textAreaContent, (error) => {
+    if (error) {
+      handleError()
+    }
+  })
 })
