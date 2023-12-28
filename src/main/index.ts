@@ -1,4 +1,14 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  Notification,
+  Menu,
+  MenuItem,
+  MenuItemConstructorOptions
+} from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -14,7 +24,6 @@ function createWindow(): void {
     height: 670,
     titleBarStyle: 'hiddenInset', // for mac
     show: false,
-    autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -38,6 +47,42 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  const menuTemplate: MenuItem[] | MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Add New File',
+          click: (): void => {
+            ipcMain.emit('create-document-triggered')
+          }
+        },
+        {
+          label: 'Open File',
+          click: (): void => {
+            ipcMain.emit('open-document-triggered')
+          }
+        },
+        {
+          role: 'quit'
+        }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' }
+      ]
+    }
+  ]
+  const menu = Menu.buildFromTemplate(menuTemplate)
+  Menu.setApplicationMenu(menu)
 }
 
 // This method will be called when Electron has finished
