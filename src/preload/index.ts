@@ -31,12 +31,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   el.createDocumentBtn?.addEventListener('click', () => {
-    console.log('clicked createDocumentBtn')
     ipcRenderer.send('create-document-triggered')
   })
 
   el.openDocumentBtn?.addEventListener('click', () => {
-    console.log('clicked openDocumentBtn')
     ipcRenderer.send('open-document-triggered')
   })
 
@@ -45,8 +43,47 @@ window.addEventListener('DOMContentLoaded', () => {
       return
     }
 
-    ipcRenderer.send('file-content-updated', e.target.value)
+    // TODO: 🔥自動保存はやめて明示的保存にする
+    // ipcRenderer.send('file-content-updated', e.target.value)
   })
+
+  el.fileTextArea.addEventListener('keydown', (event) => {
+    // カーソル移動やコピー＆ペーストは許可する
+    if (
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)
+    ) {
+      event.preventDefault()
+    }
+  })
+
+  const handleScroll = (): void => {
+    // スクロール位置 + テキストエリアの可視領域の高さ
+    const currentPosition = el.fileTextArea.scrollTop + el.fileTextArea.clientHeight
+
+    // テキストエリアの全体高さ
+    const maxHeight = el.fileTextArea.scrollHeight
+
+    if (currentPosition >= maxHeight * 0.8) {
+      ipcRenderer.send('scroll-down')
+    } else if (currentPosition <= maxHeight * 0.2) {
+      ipcRenderer.send('scroll-up')
+    }
+  }
+
+  el.fileTextArea.addEventListener('scroll', () => {
+    handleScroll()
+  })
+
+  const setCursorToTop = (): void => {
+    // カーソル位置を最上部に設定
+    el.fileTextArea.scrollTop = 0
+
+    // カーソルをテキストエリアの最初の位置に設定
+    el.fileTextArea.selectionStart = 0
+    el.fileTextArea.selectionEnd = 0
+  }
 
   const handleDocumentChange = (filePath: string, content: string = ''): void => {
     if (el.documentName) {
@@ -64,6 +101,11 @@ window.addEventListener('DOMContentLoaded', () => {
   })
 
   ipcRenderer.on('document-opened', (_, { filePath, content }) => {
+    handleDocumentChange(filePath, content)
+    setCursorToTop() // ファイル読み込み時にカーソルを先頭に移動
+  })
+
+  ipcRenderer.on('content-loaded', (_, { filePath, content }) => {
     handleDocumentChange(filePath, content)
   })
 })
