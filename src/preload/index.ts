@@ -67,8 +67,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (currentPosition >= maxHeight * 0.8) {
       ipcRenderer.send('scroll-down')
-    } else if (currentPosition <= maxHeight * 0.2) {
-      ipcRenderer.send('scroll-up')
     }
   }
 

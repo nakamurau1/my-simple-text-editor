@@ -15,14 +15,14 @@ import icon from '../../resources/icon.png?asset'
 import fs from 'fs'
 import { PieceTreeTextBufferBuilder, PieceTreeBase } from 'vscode-textbuffer'
 
-const LINES_PER_READ = 50
 const LINES_TO_MOVE_WHEN_SCROLLING = 20
+const LAST_LINE_ON_FILE_OPEN = 50
 
 let mainWindow: BrowserWindow
 let openedFilePath: string
 let pieceTreeTextBufferBuilder: PieceTreeTextBufferBuilder
 let pieceTree: PieceTreeBase
-let topDisplayedLine = 1 // 表示中の先頭行
+let lastLine = LAST_LINE_ON_FILE_OPEN
 let contentLoading = false
 
 function createWindow(): void {
@@ -109,7 +109,7 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  app.on('activate', function() {
+  app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -160,11 +160,11 @@ const loadPieceTree = (content: string): void => {
   )
 }
 
-const getLinesFromPieceTree = (startLine: number): string => {
+const getLinesFromPieceTree = (startLine: number, endLine: number): string => {
   let extractedContent: string = ''
   let i = startLine
   const maxLineCount = pieceTree.getLineCount()
-  while (i <= startLine + LINES_PER_READ && i <= maxLineCount) {
+  while (i <= endLine && i <= maxLineCount) {
     extractedContent = extractedContent.concat(pieceTree.getLineContent(i) + '\n')
     i = i + 1
   }
@@ -185,8 +185,8 @@ ipcMain.on('open-document-triggered', () => {
             handleError()
           } else {
             loadPieceTree(content)
-            topDisplayedLine = 1
-            const extractedContent: string = getLinesFromPieceTree(topDisplayedLine)
+            lastLine = LAST_LINE_ON_FILE_OPEN
+            const extractedContent: string = getLinesFromPieceTree(1, lastLine)
             openedFilePath = filePath
             mainWindow.webContents.send('document-opened', { filePath, content: extractedContent })
           }
@@ -203,30 +203,19 @@ ipcMain.on('file-content-updated', (_, textAreaContent) => {
   })
 })
 
-ipcMain.on('scroll-up', () => {
-  if (contentLoading) return
-  contentLoading = true
-
-  topDisplayedLine = topDisplayedLine - LINES_TO_MOVE_WHEN_SCROLLING
-  if (topDisplayedLine < 1) {
-    topDisplayedLine = 1
-  }
-  const extractedContent: string = getLinesFromPieceTree(topDisplayedLine)
-  mainWindow.webContents.send('content-loaded', { filePath: openedFilePath, content: extractedContent })
-  contentLoading = false
-})
-
 ipcMain.on('scroll-down', () => {
   if (contentLoading) return
   contentLoading = true
 
   const maxLineCount = pieceTree.getLineCount()
-  topDisplayedLine = topDisplayedLine + LINES_TO_MOVE_WHEN_SCROLLING
-  if (maxLineCount - LINES_PER_READ < topDisplayedLine) {
-    topDisplayedLine = maxLineCount - LINES_PER_READ
+  lastLine = lastLine + LINES_TO_MOVE_WHEN_SCROLLING
+  if (maxLineCount < lastLine) {
+    lastLine = maxLineCount
   }
-  const extractedContent: string = getLinesFromPieceTree(topDisplayedLine)
-  mainWindow.webContents.send('content-loaded', { filePath: openedFilePath, content: extractedContent })
+  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
+  mainWindow.webContents.send('content-loaded', {
+    filePath: openedFilePath,
+    content: extractedContent
+  })
   contentLoading = false
 })
-
