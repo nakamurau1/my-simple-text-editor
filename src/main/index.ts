@@ -195,11 +195,17 @@ ipcMain.on('open-document-triggered', () => {
     })
 })
 
-ipcMain.on('file-content-updated', (_, textAreaContent) => {
-  fs.writeFile(openedFilePath, textAreaContent, (error) => {
-    if (error) {
-      handleError()
-    }
+ipcMain.on('input', (_, args: { value: string; offset: number }) => {
+  const value = args.value === 'Enter' ? '\n' : args.value
+  pieceTree.insert(args.offset, value)
+
+  lastLine = pieceTree.getLineCount()
+  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
+
+  mainWindow.webContents.send('content-loaded', {
+    filePath: openedFilePath,
+    content: extractedContent,
+    caretPosition: args.offset + 1
   })
 })
 
@@ -225,6 +231,8 @@ ipcMain.on('backspace', (_, offset: number) => {
   if (pieceTree.getLength() < offset) return
 
   pieceTree.delete(offset - 1, 1)
+
+  lastLine = pieceTree.getLineCount()
   const extractedContent: string = getLinesFromPieceTree(1, lastLine)
 
   mainWindow.webContents.send('content-loaded', {
@@ -238,6 +246,8 @@ ipcMain.on('delete', (_, offset: number) => {
   if (pieceTree.getLength() <= offset) return
 
   pieceTree.delete(offset, 1)
+
+  lastLine = pieceTree.getLineCount()
   const extractedContent: string = getLinesFromPieceTree(1, lastLine)
 
   mainWindow.webContents.send('content-loaded', {

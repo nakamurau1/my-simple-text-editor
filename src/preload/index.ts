@@ -38,28 +38,41 @@ window.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.send('open-document-triggered')
   })
 
-  el.fileTextArea.addEventListener('input', (e) => {
-    if (!(e.target instanceof HTMLTextAreaElement)) {
-      return
-    }
+  let composing = false
+  el.fileTextArea.addEventListener('compositionstart', () => {
+    composing = true
+  })
 
-    // TODO: 🔥自動保存はやめて明示的保存にする
-    // ipcRenderer.send('file-content-updated', e.target.value)
+  el.fileTextArea.addEventListener('compositionend', () => {
+    composing = false
   })
 
   el.fileTextArea.addEventListener('keydown', (event) => {
+    if (composing) {
+      // IMEセッション中は特別な処理をスキップ
+      return
+    }
+
     // カーソル移動やコピー＆ペーストは許可する
     if (
       !event.ctrlKey &&
       !event.metaKey &&
-      !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)
+      !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Process'].includes(
+        event.key
+      )
     ) {
       const offset = el.fileTextArea.selectionStart
       if (event.key === 'Backspace') {
         ipcRenderer.send('backspace', offset)
       } else if (event.key === 'Delete') {
         ipcRenderer.send('delete', offset)
+      } else {
+        ipcRenderer.send('input', {
+          value: event.key,
+          offset: el.fileTextArea.selectionStart
+        })
       }
+
       event.preventDefault()
     }
   })
