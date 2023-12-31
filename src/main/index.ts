@@ -219,3 +219,30 @@ ipcMain.on('scroll-down', () => {
   })
   contentLoading = false
 })
+
+ipcMain.on('backspace', (_, offset: number) => {
+  if (offset < 1) return
+  if (pieceTree.getLength() < offset) return
+
+  pieceTree.delete(offset - 1, 1)
+  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
+
+  mainWindow.webContents.send('content-loaded', {
+    filePath: openedFilePath,
+    content: extractedContent,
+    caretPosition: offset - 1
+  })
+})
+
+ipcMain.on('delete', (_, offset: number) => {
+  if (pieceTree.getLength() <= offset) return
+
+  pieceTree.delete(offset, 1)
+  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
+
+  mainWindow.webContents.send('content-loaded', {
+    filePath: openedFilePath,
+    content: extractedContent,
+    caretPosition: offset
+  })
+})

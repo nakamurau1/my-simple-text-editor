@@ -54,6 +54,12 @@ window.addEventListener('DOMContentLoaded', () => {
       !event.metaKey &&
       !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)
     ) {
+      const offset = el.fileTextArea.selectionStart
+      if (event.key === 'Backspace') {
+        ipcRenderer.send('backspace', offset)
+      } else if (event.key === 'Delete') {
+        ipcRenderer.send('delete', offset)
+      }
       event.preventDefault()
     }
   })
@@ -103,7 +109,10 @@ window.addEventListener('DOMContentLoaded', () => {
     setCursorToTop() // ファイル読み込み時にカーソルを先頭に移動
   })
 
-  ipcRenderer.on('content-loaded', (_, { filePath, content }) => {
+  ipcRenderer.on('content-loaded', (_, { filePath, content, caretPosition }) => {
     handleDocumentChange(filePath, content)
+    // キャレットの位置を調整
+    el.fileTextArea.selectionStart = caretPosition
+    el.fileTextArea.selectionEnd = caretPosition
   })
 })
