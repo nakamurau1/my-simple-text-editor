@@ -61,15 +61,24 @@ window.addEventListener('DOMContentLoaded', () => {
     if (
       !event.ctrlKey &&
       !event.metaKey &&
-      !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Process'].includes(
-        event.key
-      )
+      ![
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+        'Home',
+        'End',
+        'Process',
+        'Shift'
+      ].includes(event.key)
     ) {
       const offset = el.fileTextArea.selectionStart
+      let count = el.fileTextArea.selectionEnd - el.fileTextArea.selectionStart
+      count = count < 1 ? 1 : count
       if (event.key === 'Backspace') {
-        ipcRenderer.send('backspace', offset)
+        ipcRenderer.send('backspace', { offset, count: 1 }) // TODO: 🔥Backspaceで範囲選択できるようにする
       } else if (event.key === 'Delete') {
-        ipcRenderer.send('delete', offset)
+        ipcRenderer.send('delete', { offset, count })
       } else {
         ipcRenderer.send('input', {
           value: event.key,

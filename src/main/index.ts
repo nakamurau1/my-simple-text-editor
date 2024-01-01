@@ -231,11 +231,13 @@ ipcMain.on('scroll-down', () => {
   contentLoading = false
 })
 
-ipcMain.on('backspace', (_, offset: number) => {
+ipcMain.on('backspace', (_, args: { offset: number; count: number }) => {
+  const { offset, count } = args
+
   if (offset < 1) return
   if (pieceTree.getLength() < offset) return
 
-  pieceTree.delete(offset - 1, 1)
+  pieceTree.delete(offset - 1, count)
 
   lastLine = pieceTree.getLineCount()
   const extractedContent: string = getLinesFromPieceTree(1, lastLine)
@@ -247,10 +249,11 @@ ipcMain.on('backspace', (_, offset: number) => {
   })
 })
 
-ipcMain.on('delete', (_, offset: number) => {
+ipcMain.on('delete', (_, args: { offset: number; count: number }) => {
+  const { offset, count } = args
   if (pieceTree.getLength() <= offset) return
 
-  pieceTree.delete(offset, 1)
+  pieceTree.delete(offset, count)
 
   lastLine = pieceTree.getLineCount()
   const extractedContent: string = getLinesFromPieceTree(1, lastLine)
