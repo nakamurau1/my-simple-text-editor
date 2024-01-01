@@ -90,6 +90,13 @@ function createWindow(): void {
           }
         },
         {
+          label: 'Save File',
+          accelerator: 'Ctrl+s',
+          click: () => {
+            ipcMain.emit('save-document-triggered')
+          }
+        },
+        {
           role: 'quit'
         }
       ]
@@ -284,3 +291,19 @@ ipcMain.on('delete', (_, args: { offset: number; count: number }) => {
   lastLine = pieceTree.getLineCount()
   redrawWindow(offset)
 })
+
+ipcMain.on('save-document-triggered', () => {
+  saveFile(openedFilePath)
+})
+
+const saveFile = (filePath: string) => {
+  const content = pieceTree.getLinesRawContent()
+  fs.writeFile(filePath, content, (error) => {
+    if (error) {
+      handleError()
+    } else {
+      openedFilePath = filePath // Update the openedFilePath with the new path
+      mainWindow.webContents.send('file-saved', filePath) // Send an IPC message to the renderer process to notify that the file was saved
+    }
+  })
+}
