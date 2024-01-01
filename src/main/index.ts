@@ -79,14 +79,7 @@ function createWindow(): void {
     },
     {
       label: 'Edit',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' }
-      ]
+      submenu: [{ role: 'cut' }, { role: 'copy' }, { role: 'paste' }]
     }
   ]
   const menu = Menu.buildFromTemplate(menuTemplate)

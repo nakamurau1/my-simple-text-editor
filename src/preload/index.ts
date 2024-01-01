@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import path from 'path'
+import { clipboard } from 'electron'
 
 // Custom APIs for renderer
 const api = {}
@@ -57,8 +58,38 @@ window.addEventListener('DOMContentLoaded', () => {
       return
     }
 
+    const offset = el.fileTextArea.selectionStart
+    let count = el.fileTextArea.selectionEnd - el.fileTextArea.selectionStart
+    count = count < 1 ? 1 : count
+
+    // Ctrl-x (カット) の処理
+    if (event.ctrlKey && event.key === 'x') {
+      // テキストエリアから選択されたテキストを取得
+      const selectedText = el.fileTextArea.value.substring(
+        el.fileTextArea.selectionStart,
+        el.fileTextArea.selectionEnd
+      )
+      // クリップボードにテキストを設定
+      clipboard.writeText(selectedText)
+
+      // 選択されたテキストを削除
+      ipcRenderer.send('delete', { offset, count })
+
+      // イベントのデフォルト動作を防止
+      event.preventDefault()
+    } // Ctrl-v (ペースト) の処理
+    else if (event.ctrlKey && event.key === 'v') {
+      // クリップボードからテキストを取得
+      const textToPaste = clipboard.readText()
+      ipcRenderer.send('input', {
+        value: textToPaste,
+        offset
+      })
+      // イベントのデフォルト動作を防止
+      event.preventDefault()
+    }
     // カーソル移動やコピー＆ペーストは許可する
-    if (
+    else if (
       !event.ctrlKey &&
       !event.metaKey &&
       ![
@@ -69,12 +100,10 @@ window.addEventListener('DOMContentLoaded', () => {
         'Home',
         'End',
         'Process',
-        'Shift'
+        'Shift',
+        'Escape'
       ].includes(event.key)
     ) {
-      const offset = el.fileTextArea.selectionStart
-      let count = el.fileTextArea.selectionEnd - el.fileTextArea.selectionStart
-      count = count < 1 ? 1 : count
       if (event.key === 'Backspace') {
         ipcRenderer.send('backspace', { offset, count: 1 }) // TODO: 🔥Backspaceで範囲選択できるようにする
       } else if (event.key === 'Delete') {
@@ -82,7 +111,7 @@ window.addEventListener('DOMContentLoaded', () => {
       } else {
         ipcRenderer.send('input', {
           value: event.key,
-          offset: el.fileTextArea.selectionStart
+          offset
         })
       }
 
