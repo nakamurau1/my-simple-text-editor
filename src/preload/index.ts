@@ -43,8 +43,12 @@ window.addEventListener('DOMContentLoaded', () => {
     composing = true
   })
 
-  el.fileTextArea.addEventListener('compositionend', () => {
+  el.fileTextArea.addEventListener('compositionend', (event) => {
     composing = false
+    ipcRenderer.send('input', {
+      value: event.data,
+      offset: el.fileTextArea.selectionStart - event.data.length
+    })
   })
 
   el.fileTextArea.addEventListener('keydown', (event) => {

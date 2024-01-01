@@ -196,7 +196,12 @@ ipcMain.on('open-document-triggered', () => {
 })
 
 ipcMain.on('input', (_, args: { value: string; offset: number }) => {
-  const value = args.value === 'Enter' ? '\n' : args.value
+  if (args.offset > pieceTree.getLength()) return
+
+  let value = args.value
+  if (args.value === 'Enter') {
+    value = '\n'
+  }
   pieceTree.insert(args.offset, value)
 
   lastLine = pieceTree.getLineCount()
@@ -205,7 +210,7 @@ ipcMain.on('input', (_, args: { value: string; offset: number }) => {
   mainWindow.webContents.send('content-loaded', {
     filePath: openedFilePath,
     content: extractedContent,
-    caretPosition: args.offset + 1
+    caretPosition: args.offset + value.length
   })
 })
 
