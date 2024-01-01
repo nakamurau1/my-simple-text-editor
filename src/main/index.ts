@@ -32,6 +32,16 @@ let lastLine = LAST_LINE_ON_FILE_OPEN
 let contentLoading = false
 let commandManager: CommandManager
 
+const redrawWindow = (caretPosition?: number) => {
+  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
+
+  mainWindow.webContents.send('content-loaded', {
+    filePath: openedFilePath,
+    content: extractedContent,
+    caretPosition
+  })
+}
+
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -94,13 +104,7 @@ function createWindow(): void {
             commandManager.undo()
             // 再描画
             lastLine = pieceTree.getLineCount()
-            const extractedContent: string = getLinesFromPieceTree(1, lastLine)
-
-            mainWindow.webContents.send('content-loaded', {
-              filePath: openedFilePath,
-              content: extractedContent,
-              caretPosition: 0
-            })
+            redrawWindow(0)
           }
         },
         {
@@ -110,13 +114,7 @@ function createWindow(): void {
             commandManager.redo()
             // 再描画
             lastLine = pieceTree.getLineCount()
-            const extractedContent: string = getLinesFromPieceTree(1, lastLine)
-
-            mainWindow.webContents.send('content-loaded', {
-              filePath: openedFilePath,
-              content: extractedContent,
-              caretPosition: 0
-            })
+            redrawWindow(0)
           }
         },
         { type: 'separator' },
@@ -242,14 +240,9 @@ ipcMain.on('input', (_, args: { value: string; offset: number }) => {
   }
   commandManager.executeCommand(createInsertCommand(args.offset, value))
 
+  // 再描画
   lastLine = pieceTree.getLineCount()
-  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
-
-  mainWindow.webContents.send('content-loaded', {
-    filePath: openedFilePath,
-    content: extractedContent,
-    caretPosition: args.offset + value.length
-  })
+  redrawWindow(args.offset + value.length)
 })
 
 ipcMain.on('scroll-down', () => {
@@ -261,11 +254,9 @@ ipcMain.on('scroll-down', () => {
   if (maxLineCount < lastLine) {
     lastLine = maxLineCount
   }
-  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
-  mainWindow.webContents.send('content-loaded', {
-    filePath: openedFilePath,
-    content: extractedContent
-  })
+  // 再描画
+  redrawWindow()
+
   contentLoading = false
 })
 
@@ -278,13 +269,7 @@ ipcMain.on('backspace', (_, args: { offset: number; count: number }) => {
   commandManager.executeCommand(createDeleteCommand(offset - 1, count))
 
   lastLine = pieceTree.getLineCount()
-  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
-
-  mainWindow.webContents.send('content-loaded', {
-    filePath: openedFilePath,
-    content: extractedContent,
-    caretPosition: offset - 1
-  })
+  redrawWindow(offset - 1)
 })
 
 ipcMain.on('delete', (_, args: { offset: number; count: number }) => {
@@ -297,11 +282,5 @@ ipcMain.on('delete', (_, args: { offset: number; count: number }) => {
   commandManager.executeCommand(createDeleteCommand(offset, count))
 
   lastLine = pieceTree.getLineCount()
-  const extractedContent: string = getLinesFromPieceTree(1, lastLine)
-
-  mainWindow.webContents.send('content-loaded', {
-    filePath: openedFilePath,
-    content: extractedContent,
-    caretPosition: offset
-  })
+  redrawWindow(offset)
 })
