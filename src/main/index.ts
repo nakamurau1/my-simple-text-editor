@@ -14,6 +14,12 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import fs from 'fs'
 import { PieceTreeTextBufferBuilder, PieceTreeBase } from 'vscode-textbuffer'
+import {
+  CommandManager,
+  createCommandManager,
+  createInsertCommand,
+  createDeleteCommand
+} from './document'
 
 const LINES_TO_MOVE_WHEN_SCROLLING = 20
 const LAST_LINE_ON_FILE_OPEN = 50
@@ -24,6 +30,7 @@ let pieceTreeTextBufferBuilder: PieceTreeTextBufferBuilder
 let pieceTree: PieceTreeBase
 let lastLine = LAST_LINE_ON_FILE_OPEN
 let contentLoading = false
+let commandManager: CommandManager
 
 function createWindow(): void {
   // Create the browser window.
@@ -79,7 +86,44 @@ function createWindow(): void {
     },
     {
       label: 'Edit',
-      submenu: [{ role: 'cut' }, { role: 'copy' }, { role: 'paste' }]
+      submenu: [
+        {
+          label: 'undo',
+          accelerator: 'Ctrl+z',
+          click: (): void => {
+            commandManager.undo()
+            // 再描画
+            lastLine = pieceTree.getLineCount()
+            const extractedContent: string = getLinesFromPieceTree(1, lastLine)
+
+            mainWindow.webContents.send('content-loaded', {
+              filePath: openedFilePath,
+              content: extractedContent,
+              caretPosition: 0
+            })
+          }
+        },
+        {
+          label: 'redo',
+          accelerator: 'Ctrl+y',
+          click: (): void => {
+            commandManager.redo()
+            // 再描画
+            lastLine = pieceTree.getLineCount()
+            const extractedContent: string = getLinesFromPieceTree(1, lastLine)
+
+            mainWindow.webContents.send('content-loaded', {
+              filePath: openedFilePath,
+              content: extractedContent,
+              caretPosition: 0
+            })
+          }
+        },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' }
+      ]
     }
   ]
   const menu = Menu.buildFromTemplate(menuTemplate)
@@ -151,6 +195,7 @@ const loadPieceTree = (content: string): void => {
   pieceTree = pieceTreeFactory.create(
     1 // DefaultEndOfLine.LF を指定すると実行時エラーになる問題が解決できないので
   )
+  commandManager = createCommandManager(pieceTree)
 }
 
 const getLinesFromPieceTree = (startLine: number, endLine: number): string => {
@@ -195,7 +240,7 @@ ipcMain.on('input', (_, args: { value: string; offset: number }) => {
   if (args.value === 'Enter') {
     value = '\n'
   }
-  pieceTree.insert(args.offset, value)
+  commandManager.executeCommand(createInsertCommand(args.offset, value))
 
   lastLine = pieceTree.getLineCount()
   const extractedContent: string = getLinesFromPieceTree(1, lastLine)
@@ -230,7 +275,7 @@ ipcMain.on('backspace', (_, args: { offset: number; count: number }) => {
   if (offset < 1) return
   if (pieceTree.getLength() < offset) return
 
-  pieceTree.delete(offset - 1, count)
+  commandManager.executeCommand(createDeleteCommand(offset - 1, count))
 
   lastLine = pieceTree.getLineCount()
   const extractedContent: string = getLinesFromPieceTree(1, lastLine)
@@ -249,7 +294,7 @@ ipcMain.on('delete', (_, args: { offset: number; count: number }) => {
     count = pieceTree.getLength() - offset
   }
 
-  pieceTree.delete(offset, count)
+  commandManager.executeCommand(createDeleteCommand(offset, count))
 
   lastLine = pieceTree.getLineCount()
   const extractedContent: string = getLinesFromPieceTree(1, lastLine)
