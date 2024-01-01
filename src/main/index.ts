@@ -243,8 +243,11 @@ ipcMain.on('backspace', (_, args: { offset: number; count: number }) => {
 })
 
 ipcMain.on('delete', (_, args: { offset: number; count: number }) => {
-  const { offset, count } = args
-  if (pieceTree.getLength() <= offset) return
+  const { offset } = args
+  let { count } = args
+  if (pieceTree.getLength() <= offset + count) {
+    count = pieceTree.getLength() - offset
+  }
 
   pieceTree.delete(offset, count)
 
